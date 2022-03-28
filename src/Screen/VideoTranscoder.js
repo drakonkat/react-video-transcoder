@@ -1,18 +1,7 @@
 import React, {Component} from 'react';
 import {fileExists, getDuration, getExtension, load, readFile} from "../FFMpegUtils";
 import logo from "../asset/default-noborder.svg"
-import {
-    Button,
-    Chip,
-    Container,
-    createTheme,
-    CssBaseline,
-    IconButton,
-    Stack,
-    ThemeProvider,
-    Typography
-} from "@mui/material";
-import {LoadingButton} from '@mui/lab';
+import {Button, Chip, Container, createTheme, CssBaseline, Stack, ThemeProvider, Typography} from "@mui/material";
 
 import {FileUploadOutlined, PlayCircleOutlined} from "@mui/icons-material";
 
@@ -128,10 +117,9 @@ class VideoTranscoder extends Component {
 
             // Create media source
             let myMediaSource = new MediaSource();
-            let url = URL.createObjectURL(myMediaSource);
-            this.videoElement.current.src = url;
+            this.videoElement.current.src = URL.createObjectURL(myMediaSource);
             myMediaSource.addEventListener('sourceopen', () => {
-                this.setState({started:true})
+                this.setState({started: true})
                 let index = 0;
                 let videoSourceBuffer;
                 this.playInterval = setInterval(() => {
@@ -222,11 +210,11 @@ class VideoTranscoder extends Component {
                                 endIcon={<PlayCircleOutlined/>}
                                 onClick={this.transcode}
                             >
-                                Transcode {loading && progress && ""+progress+"%" }
+                                Transcode {loading && progress && "" + progress + "%"}
                             </Button>
 
                             <Stack sx={{display: started ? undefined : "none", maxWidth: "100%"}}>
-                                <video ref={this.videoElement} controls></video>
+                                <video ref={this.videoElement} controls/>
                             </Stack>
                         </Stack>
                     </Stack>
