@@ -5,7 +5,7 @@
 
 > How I can access to the service?
 
-You can access it from this here [JSTranscoder](https://tndsite.gitlab.io/react-video-transcoder/)
+You can access it from this here [JSTranscoder](https://tndsite.gitlab.io/react_video_transcoder/)
 
 
 It uses **[FFMPEG.WASM](https://ffmpegwasm.netlify.app/)** - An ffmpeg porting in webassembly
