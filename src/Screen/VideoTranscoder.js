@@ -1,7 +1,17 @@
 import React, {Component} from 'react';
 import {fileExists, getDuration, getExtension, load, readFile} from "../FFMpegUtils";
 import logo from "../asset/default-noborder.svg"
-import {Button, Chip, Container, createTheme, CssBaseline, Stack, ThemeProvider, Typography} from "@mui/material";
+import {
+    Button,
+    Chip,
+    Container,
+    createTheme,
+    CssBaseline,
+    Stack,
+    TextField,
+    ThemeProvider,
+    Typography
+} from "@mui/material";
 
 import {FileUploadOutlined, PlayCircleOutlined} from "@mui/icons-material";
 
@@ -56,6 +66,8 @@ const options = {
 
 class VideoTranscoder extends Component {
     state = {
+        logs: [],
+        parameter: "-segment_format_options movflags=frag_keyframe+empty_moov+default_base_moof -c:v libx264 -preset ultrafast",
         started: false,
         loading: false,
         ffmpegReady: false,
@@ -65,6 +77,14 @@ class VideoTranscoder extends Component {
     constructor() {
         super();
         this.videoElement = React.createRef();
+    }
+
+    log = (text, ...variable) => {
+        // console.log(text, variable)
+        this.setState((p) => {
+            p.logs.push(text)
+            return p;
+        })
     }
 
     componentDidMount() {
@@ -81,7 +101,7 @@ class VideoTranscoder extends Component {
 
     transcode = async () => {
         let {ffmpeg} = this.props;
-        let {file, loading} = this.state;
+        let {file, loading, parameter} = this.state;
         this.setState({loading: true, progress: 0})
         try {
             let extension = getExtension(file[0].name);
@@ -106,9 +126,20 @@ class VideoTranscoder extends Component {
                  * ratio is a float number between 0 and 1.
                  */
             });
+            ffmpeg.setLogger(({type, message}) => {
+                this.log(type + ": " + message);
+                /*
+                 * type can be one of following:
+                 *
+                 * info: internal workflow debug messages
+                 * fferr: ffmpeg native stderr output
+                 * ffout: ffmpeg native stdout output
+                 */
+            });
             ffmpeg.run('-i', outputFileName,
                 // Encode for MediaStream
-                "-segment_format_options", "movflags=frag_keyframe+empty_moov+default_base_moof",
+                // "-segment_format_options", "movflags=frag_keyframe+empty_moov+default_base_moof",
+                ...parameter.split(" "),
                 // 120fps
                 // "-filter:v", "tblend", "-r", "120",
                 // Upscaling 4k
@@ -129,7 +160,7 @@ class VideoTranscoder extends Component {
                 let videoSourceBuffer;
                 this.playInterval = setInterval(() => {
                     if (index === 0 && fileExists("1.mp4", ffmpeg)) {
-                        console.log("Added first pieces")
+                        this.log("Added first pieces")
                         let mime = `video/mp4; codecs="avc1.42E01E, mp4a.40.2"`;
                         videoSourceBuffer = myMediaSource.addSourceBuffer(mime);
                         videoSourceBuffer.addEventListener('error', console.log);
@@ -137,12 +168,14 @@ class VideoTranscoder extends Component {
                         videoSourceBuffer.mode = "sequence";
                         videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', '0.mp4'));
                         index++;
-                    } else if (index > 0 && fileExists((index+1) + ".mp4", ffmpeg)) {
-                        console.log("Added pieces "+ index)
+                    } else if (index > 0 && fileExists((index + 1) + ".mp4", ffmpeg)) {
+                        this.log("Added pieces " + index)
                         videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', index + '.mp4'));
                         index++
                     } else if (index > 0 && progress >= 1) {
-                        console.log("Close adding")
+                        this.log("Added pieces " + index)
+                        videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', index + '.mp4'));
+                        this.log("Close adding")
                         clearInterval(this.playInterval)
                     }
                 }, 1000)
@@ -158,7 +191,9 @@ class VideoTranscoder extends Component {
             theme,
             file,
             progress,
-            started
+            started,
+            logs,
+            parameter
         } = this.state;
         return (
             <ThemeProvider theme={theme}>
@@ -188,7 +223,7 @@ class VideoTranscoder extends Component {
                             <Typography variant={"h4"}>Select a file to convert</Typography>
                             {file ? <Chip label={file[0].name} variant="outlined"
                                           onDelete={() => {
-                                              this.setState({files: null, started: false})
+                                              this.setState({file: null, started: false, logs:[]})
                                           }}
                                 />
                                 :
@@ -210,6 +245,20 @@ class VideoTranscoder extends Component {
                                     />
                                 </Button>
                             }
+                            <Typography variant={"h6"}>Parameters:</Typography>
+                            <TextField
+                                fullWidth
+                                id="parameter"
+                                label="Parameters"
+                                variant="filled"
+                                value={parameter}
+                                onChange={(e) => {
+                                    let value = e.target.value;
+                                    this.setState({
+                                        parameter: value
+                                    })
+                                }}
+                            />
 
                             <Button
                                 disabled={file == null}
@@ -223,6 +272,19 @@ class VideoTranscoder extends Component {
 
                             <Stack sx={{display: started ? undefined : "none", maxWidth: "100%"}}>
                                 <video ref={this.videoElement} controls/>
+                            </Stack>
+
+                            <Stack sx={{
+                                display: logs.length>0 ? undefined : "none",
+                                maxHeight: "200px",
+                                overflow: "auto",
+                                maxWidth: "50%",
+                                padding:"10px"
+                            }}>
+                                <Typography variant={"h5"} color={"fine"}>Log of the operation:</Typography>
+                                {logs.map((l) => {
+                                    return <Typography variant={"body2"} color={"fine"}>{l}</Typography>
+                                })}
                             </Stack>
                         </Stack>
                     </Stack>
