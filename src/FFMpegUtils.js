@@ -41,4 +41,8 @@ export const readFile = (file) => {
 export const getExtension = (name) => {
     return name.split('.').pop();
 }
-export const fileExists = (file, ffmpeg) => ffmpeg.FS("readdir", "/").includes(file);
+export const fileExists = (file, ffmpeg) => {
+    let output = ffmpeg.FS("readdir", "/").includes(file)
+    console.log("Checked "+file+": ", output)
+    return output
+};

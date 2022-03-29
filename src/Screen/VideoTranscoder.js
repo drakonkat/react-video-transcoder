@@ -109,8 +109,13 @@ class VideoTranscoder extends Component {
             ffmpeg.run('-i', outputFileName,
                 // Encode for MediaStream
                 "-segment_format_options", "movflags=frag_keyframe+empty_moov+default_base_moof",
-                // Encode 5 second segments
-                "-c:v", "libx264", "-preset", "ultrafast",
+                // 120fps
+                // "-filter:v", "tblend", "-r", "120",
+                // Upscaling 4k
+                // "-vf", "scale=3840:2160:flags=neighbor", "-r", "60",
+                // Fast converting
+                // "-c:v", "libx264", "-preset", "ultrafast",
+                // Encode 2 second segments
                 "-segment_time", "2",
                 // Write to files by index
                 "-f", "segment", "%d.mp4");
@@ -123,7 +128,8 @@ class VideoTranscoder extends Component {
                 let index = 0;
                 let videoSourceBuffer;
                 this.playInterval = setInterval(() => {
-                    if (index === 0 && fileExists("0.mp4", ffmpeg)) {
+                    if (index === 0 && fileExists("1.mp4", ffmpeg)) {
+                        console.log("Added first pieces")
                         let mime = `video/mp4; codecs="avc1.42E01E, mp4a.40.2"`;
                         videoSourceBuffer = myMediaSource.addSourceBuffer(mime);
                         videoSourceBuffer.addEventListener('error', console.log);
@@ -131,10 +137,12 @@ class VideoTranscoder extends Component {
                         videoSourceBuffer.mode = "sequence";
                         videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', '0.mp4'));
                         index++;
-                    } else if (index > 0 && fileExists(index + ".mp4", ffmpeg)) {
+                    } else if (index > 0 && fileExists((index+1) + ".mp4", ffmpeg)) {
+                        console.log("Added pieces "+ index)
                         videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', index + '.mp4'));
                         index++
                     } else if (index > 0 && progress >= 1) {
+                        console.log("Close adding")
                         clearInterval(this.playInterval)
                     }
                 }, 1000)
