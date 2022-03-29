@@ -149,7 +149,7 @@ class VideoTranscoder extends Component {
                 // Encode 2 second segments
                 "-segment_time", "2",
                 // Write to files by index
-                "-f", "segment", "%d.mp4");
+                "-f", "segment", "%d.mp4", "output.mp4");
 
             // Create media source
             let myMediaSource = new MediaSource();
@@ -175,7 +175,11 @@ class VideoTranscoder extends Component {
                     } else if (index > 0 && progress >= 1) {
                         this.log("Added pieces " + index)
                         videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', index + '.mp4'));
-                        this.log("Close adding")
+                        this.log("Close adding " + fileExists("output.mp4", ffmpeg))
+                        this.videoElement.current.src = URL.createObjectURL(
+                            new Blob([(ffmpeg.FS('readFile', 'output.mp4')).buffer], { type: "video/mp4" })
+                        );
+
                         clearInterval(this.playInterval)
                     }
                 }, 1000)
