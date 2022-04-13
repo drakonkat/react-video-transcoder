@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {convertHMS, getDuration, getExtension, load, readFile} from "../FFMpegUtils";
+import {convertHMS, getDuration, load, readFile} from "../FFMpegUtils";
 import logo from "../asset/default-noborder.svg"
 import {
     Button,
@@ -15,9 +15,7 @@ import {
 
 import {FileUploadOutlined, PlayCircleOutlined} from "@mui/icons-material";
 
-const round = (input) => {
-    return Math.round(input * 100) / 100
-}
+
 const defaultTheme = createTheme();
 const options = {
     typography: {
@@ -67,7 +65,7 @@ const options = {
 class VideoTranscoder extends Component {
     state = {
         logs: [],
-        parameter: "-s hd720 -crf 22 -c:a aac -b:a 160k -movflags frag_keyframe+empty_moov+default_base_moof -c:v libx264 -preset ultrafast",
+        parameter: "-s hd480 -crf 22 -c:a aac -b:a 160k -movflags frag_keyframe+empty_moov+default_base_moof -c:v libx264 -preset ultrafast",
         started: false,
         loading: false,
         ffmpegReady: false,
@@ -100,20 +98,14 @@ class VideoTranscoder extends Component {
 
     transcode = async () => {
         let {ffmpeg} = this.props;
-        let {file, loading, parameter} = this.state;
+        let {file, parameter} = this.state;
         this.setState({loading: true, progress: 0})
         try {
             console.log('Loading ffmpeg-core.js');
             await load(ffmpeg);
-            let extension = getExtension(file[0].name);
-            let fileSize = file[0].size
-            let chunkSize = 102400;
             let progress = 0;
-            // Create media source
             let myMediaSource = new MediaSource();
             this.videoElement.current.src = URL.createObjectURL(myMediaSource);
-            // let duration = await getDuration(ffmpeg, outputFileName)
-            // console.log("Duration of file: ", duration)
             let videoSourceBuffer;
             myMediaSource.addEventListener('sourceopen', async () => {
                 this.setState({started: true})
@@ -121,7 +113,6 @@ class VideoTranscoder extends Component {
                 videoSourceBuffer = myMediaSource.addSourceBuffer(mime);
                 videoSourceBuffer.addEventListener('error', console.error);
                 videoSourceBuffer.mode = "sequence";
-                let fragments = [];
                 let iteration = 0;
                 let durationChunk = 10;
                 let error = true
@@ -129,7 +120,7 @@ class VideoTranscoder extends Component {
                 while (error) {
                     // I think can be optimized with less conversion
                     let outputFileName = file[0].name;
-                    if (iteration == 0) {
+                    if (iteration === 0) {
                         let sourceBuffer = new Uint8Array(await readFile(file[0]))
                         console.log('Copy file', sourceBuffer, file[0]);
                         await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
@@ -156,7 +147,6 @@ class VideoTranscoder extends Component {
                             ...parameter.split(" "),
                             iteration + "_converted.mp4");
                     } catch (e) {
-                        //TODO Controllo cambio file
                         let sourceBuffer = new Uint8Array(await readFile(file[0]))
                         console.log('Copy file', sourceBuffer, file[0]);
                         await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
@@ -167,13 +157,17 @@ class VideoTranscoder extends Component {
                         console.log("Iteration not increased")
                         continue;
                     }
-                    console.log("Added piece: " + (startDuration) + " to " + (endDuration) + " on total " + "??")
+                    console.log("Added piece: " + (startDuration) + " to " + (endDuration) + " on total " + convertHMS(durationFile))
                     let temp = ffmpeg.FS('readFile', iteration + "_converted.mp4");
                     videoSourceBuffer.appendBuffer(temp);
                     this.setState({loading: progress >= 1, progress})
                     iteration += durationChunk
                     if (iteration >= durationFile) {
                         error = false
+                        setTimeout(()=> {
+                            myMediaSource.endOfStream()
+
+                        },2000);
                     } else if (iteration > (durationFile - durationChunk)) {
                         durationChunk = durationFile - iteration;
                     }
