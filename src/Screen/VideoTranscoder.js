@@ -279,8 +279,8 @@ class VideoTranscoder extends Component {
                                 padding: "10px"
                             }}>
                                 <Typography variant={"h5"} color={"fine"}>Log of the operation:</Typography>
-                                {logs.map((l) => {
-                                    return <Typography variant={"body2"} color={"fine"}>{l}</Typography>
+                                {logs.map((l,index) => {
+                                    return <Typography key={index+"logLine"} variant={"body2"} color={"fine"}>{l}</Typography>
                                 })}
                             </Stack>
                         </Stack>
