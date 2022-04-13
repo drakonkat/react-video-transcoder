@@ -4,7 +4,7 @@ import {createFFmpeg} from "@ffmpeg/ffmpeg";
 
 const ffmpeg = createFFmpeg({
   corePath: "ffmpeg-core.js",
-  log: true,
+  log: false,
 });
 function App() {
   return (
