@@ -68,7 +68,7 @@ const options = {
 class VideoTranscoder extends Component {
     state = {
         logs: [],
-        parameter: "-movflags frag_keyframe+empty_moov+default_base_moof -c:v libx264 -preset ultrafast",
+        parameter: "-s hd720 -crf 22 -c:a aac -b:a 160k -movflags frag_keyframe+empty_moov+default_base_moof -c:v libx264 -preset ultrafast",
         started: false,
         loading: false,
         ffmpegReady: false,
@@ -134,7 +134,7 @@ class VideoTranscoder extends Component {
                         let sourceBuffer = new Uint8Array(await readFile(file[0]))
                         console.log('Copy file', sourceBuffer, file[0]);
                         await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
-                        durationFile= await getDuration(ffmpeg, outputFileName);
+                        durationFile = await getDuration(ffmpeg, outputFileName);
                         myMediaSource.duration = durationFile;
                     }
                     console.log('Start transcoding ' + iteration);
@@ -150,7 +150,7 @@ class VideoTranscoder extends Component {
                     });
                     let startDuration = convertHMS(iteration);
                     let chunkDuration = convertHMS(durationChunk);
-                    let endDuration = convertHMS(iteration+durationChunk);
+                    let endDuration = convertHMS(iteration + durationChunk);
                     try {
                         await ffmpeg.run('-i', outputFileName,
                             "-ss", startDuration, "-t", chunkDuration,
@@ -161,7 +161,7 @@ class VideoTranscoder extends Component {
                         let sourceBuffer = new Uint8Array(await readFile(file[0]))
                         console.log('Copy file', sourceBuffer, file[0]);
                         await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
-                        durationFile= await getDuration(ffmpeg, outputFileName);
+                        durationFile = await getDuration(ffmpeg, outputFileName);
                         myMediaSource.duration = durationFile;
                         error = true;
                         console.error("ERROR: ", e)
@@ -172,146 +172,18 @@ class VideoTranscoder extends Component {
                     let temp = ffmpeg.FS('readFile', iteration + "_converted.mp4");
                     videoSourceBuffer.appendBuffer(temp);
                     this.setState({loading: progress >= 1, progress})
-                    iteration +=durationChunk
+                    iteration += durationChunk
                     if (iteration >= durationFile) {
                         error = false
-                    }else if(iteration > (durationFile-durationChunk)){
-                        durationChunk = durationFile-iteration;
+                    } else if (iteration > (durationFile - durationChunk)) {
+                        durationChunk = durationFile - iteration;
                     }
                 }
-
-
-                // for (let offset = 0; offset < fileSize; offset += chunkSize) {
-                //     // I think can be optimized with less conversion
-                //     let blob = new File([file[0].slice(offset, offset + Math.min(chunkSize + 1, fileSize - offset), file[0].type)], offset + ".avi")
-                //     let sourceBuffer = new Uint8Array(await readFile(blob))
-                //     let outputFileName = offset + "." + extension;
-                //     console.log('Copy file', sourceBuffer, blob);
-                //     await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
-                //     console.log('Start transcoding ' + iteration);
-                //     ffmpeg.setLogger(({type, message}) => {
-                //         this.log(type + ": " + message);
-                //         /*
-                //          * type can be one of following:
-                //          *
-                //          * info: internal workflow debug messages
-                //          * fferr: ffmpeg native stderr output
-                //          * ffout: ffmpeg native stdout output
-                //          */
-                //     });
-                //     await ffmpeg.run('-i', outputFileName,
-                //         ...parameter.split(" "),
-                //         "-ss", "00:00:03", "-t", "00:00:08",
-                //         offset + "_converted.mp4");
-                //     console.log("Added piece: " + offset + " to " + (offset + Math.min(chunkSize + 1, fileSize - offset)) + " on total " + fileSize)
-                //     let temp = ffmpeg.FS('readFile', offset + "_converted.mp4");
-                //     fragments.push(offset + "_converted.mp4");
-                //     videoSourceBuffer.appendBuffer(temp);
-                //
-                //     progress = round(((offset + Math.min(chunkSize + 1, fileSize - offset)) * 100) / fileSize);
-                //     this.setState({loading: progress >= 1, progress})
-                //     // if ((offset + chunkSize) >= fileSize) {
-                //     //     this.videoElement.current.src = URL.createObjectURL(
-                //     //         new Blob(fragments.map((n => {
-                //     //             return ffmpeg.FS('readFile', n).buffer
-                //     //         })), {type: "video/mp4"})
-                //     //     );
-                //     // }
-                //     iteration++
-                // }
             });
         } catch (e) {
             console.error("Transcoding error", e)
         }
     }
-
-    // transcode = async () => {
-    //     let {ffmpeg} = this.props;
-    //     let {file, loading, parameter} = this.state;
-    //     this.setState({loading: true, progress: 0})
-    //     try {
-    //         let extension = getExtension(file[0].name);
-    //         let outputFileName = "test." + extension;
-    //         let sourceBuffer = new Uint8Array(await readFile(file[0]))
-    //         console.log('Loading ffmpeg-core.js');
-    //         await load(ffmpeg);
-    //         console.log('Copy file: ', outputFileName, sourceBuffer);
-    //         await ffmpeg.FS('writeFile', outputFileName, sourceBuffer);
-    //         console.log('Start transcoding');
-    //         let duration = await getDuration(ffmpeg, outputFileName)
-    //         console.log("Duration of file: ", duration)
-    //         let progress = 0;
-    //         ffmpeg.setProgress(({ratio}) => {
-    //             progress = ratio;
-    //             if (progress >= 1 && loading) {
-    //                 this.setState({loading: false, progress: round(ratio * 100)})
-    //             } else {
-    //                 this.setState({progress: round(ratio * 100)})
-    //             }
-    //             /*
-    //              * ratio is a float number between 0 and 1.
-    //              */
-    //         });
-    //         ffmpeg.setLogger(({type, message}) => {
-    //             this.log(type + ": " + message);
-    //             /*
-    //              * type can be one of following:
-    //              *
-    //              * info: internal workflow debug messages
-    //              * fferr: ffmpeg native stderr output
-    //              * ffout: ffmpeg native stdout output
-    //              */
-    //         });
-    //         ffmpeg.run('-i', outputFileName,
-    //             // Encode for MediaStream
-    //             // "-segment_format_options", "movflags=frag_keyframe+empty_moov+default_base_moof",
-    //             ...parameter.split(" "),
-    //             // 120fps
-    //             // "-filter:v", "tblend", "-r", "120",
-    //             // Upscaling 4k
-    //             // "-vf", "scale=3840:2160:flags=neighbor", "-r", "60",
-    //             // Fast converting
-    //             // "-c:v", "libx264", "-preset", "ultrafast",
-    //             // Encode 2 second segments
-    //             "-segment_time", "2",
-    //             // Write to files by index
-    //             "-f", "segment", "%d.mp4", "output.mp4");
-    //
-    //         // Create media source
-    //         let myMediaSource = new MediaSource();
-    //         this.videoElement.current.src = URL.createObjectURL(myMediaSource);
-    //         myMediaSource.addEventListener('sourceopen', () => {
-    //             this.setState({started: true})
-    //             let index = 0;
-    //             let videoSourceBuffer;
-    //             this.playInterval = setInterval(() => {
-    //                 if (index === 0 && fileExists("1.mp4", ffmpeg)) {
-    //                     this.log("Added first pieces")
-    //                     let mime = `video/mp4; codecs="avc1.42E01E, mp4a.40.2"`;
-    //                     videoSourceBuffer = myMediaSource.addSourceBuffer(mime);
-    //                     videoSourceBuffer.addEventListener('error', console.log);
-    //                     myMediaSource.duration = duration;
-    //                     videoSourceBuffer.mode = "sequence";
-    //                     videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', '0.mp4'));
-    //                     index++;
-    //                 } else if (index > 0 && fileExists((index + 1) + ".mp4", ffmpeg)) {
-    //                     this.log("Added pieces " + index)
-    //                     videoSourceBuffer.appendBuffer(ffmpeg.FS('readFile', index + '.mp4'));
-    //                     index++
-    //                 } else if (index > 0 && progress >= 1) {
-    //                     this.log("Close adding " + fileExists("output.mp4", ffmpeg))
-    //                     this.videoElement.current.src = URL.createObjectURL(
-    //                         new Blob([(ffmpeg.FS('readFile', 'output.mp4')).buffer], { type: "video/mp4" })
-    //                     );
-    //
-    //                     clearInterval(this.playInterval)
-    //                 }
-    //             }, 1000)
-    //         });
-    //     } catch (e) {
-    //         console.error("Transcoding error", e)
-    //     }
-    // }
 
     render() {
         let {
@@ -351,7 +223,9 @@ class VideoTranscoder extends Component {
                             <Typography variant={"h4"}>Select a file to convert</Typography>
                             {file ? <Chip label={file[0].name} variant="outlined"
                                           onDelete={() => {
-                                              this.setState({file: null, started: false, logs: []})
+                                              this.setState({file: null, started: false, logs: []}, () => {
+                                                  window.location.reload();
+                                              })
                                           }}
                                 />
                                 :
